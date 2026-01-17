@@ -10,6 +10,7 @@ import progressReducer from './slices/progressSlice';
 import userDataReducer from './slices/userDataSlice';
 import notificationReducer from './slices/notificationSlice';
 import apiReducer from './slices/apiSlice';
+import cacheReducer from './slices/cacheSlice';
 
 export const store = configureStore({
   reducer: {
@@ -19,6 +20,7 @@ export const store = configureStore({
     userData: userDataReducer,
     notifications: notificationReducer,
     api: apiReducer,
+    cache: cacheReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
