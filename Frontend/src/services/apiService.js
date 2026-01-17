@@ -250,6 +250,14 @@ export const apiService = {
   },
 
   /**
+   * Update user profile
+   * @param {object} profileData - Profile update data
+   */
+  async updateProfile(profileData) {
+    return makeRequest('put', API_ENDPOINTS.UPDATE_PROFILE, profileData);
+  },
+
+  /**
    * Update user progress
    * @param {object} progressData - Progress update data
    */

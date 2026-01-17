@@ -62,7 +62,7 @@ const Progress = () => {
 
   const totalLessons = LESSONS.length;
   const completionRate = totalLessons > 0 
-    ? Math.round((totalLessonsCompleted / totalLessons) * 100) 
+    ? Math.round((lessonsCompleted / totalLessons) * 100) 
     : 0;
 
   const stats_data = [
@@ -97,10 +97,10 @@ const Progress = () => {
   ];
 
   const achievements = [
-    { id: 1, title: 'First Step', description: 'Complete your first lesson', unlocked: totalLessonsCompleted >= 1 },
+    { id: 1, title: 'First Step', description: 'Complete your first lesson', unlocked: lessonsCompleted >= 1 },
     { id: 2, title: 'Dedicated Learner', description: '7 day streak', unlocked: streak >= 7 },
     { id: 3, title: 'Rising Star', description: 'Earn 50 stars', unlocked: starsEarned >= 50 },
-    { id: 4, title: 'Practice Master', description: '10 lessons completed', unlocked: totalLessonsCompleted >= 10 },
+    { id: 4, title: 'Practice Master', description: '10 lessons completed', unlocked: lessonsCompleted >= 10 },
     { id: 5, title: 'Time Traveler', description: 'Practice for 1 hour total', unlocked: totalPracticeTime >= 60 },
     { id: 6, title: 'Commitment', description: '30 day streak', unlocked: streak >= 30 },
   ];
@@ -222,7 +222,7 @@ const Progress = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <IoBook className="text-primary-500" />
-                <span className="text-gray-700">Complete {3 - (totalLessonsCompleted % 3)} more lessons for a bonus</span>
+                <span className="text-gray-700">Complete {3 - (lessonsCompleted % 3)} more lessons for a bonus</span>
               </div>
             </div>
           </Card>

@@ -3,7 +3,7 @@
  * User profile management and settings
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@hooks/useAuth';
 import { useUserData } from '@hooks/useUserData';
 import { useNotification } from '@hooks/useNotification';
@@ -30,10 +30,12 @@ import LoadingSpinner from '@components/common/LoadingSpinner';
 const Profile = () => {
   const { user, logout } = useAuth();
   const { profile, stats, loading: profileLoading } = useUserData();
+  const { reloadProfile } = useUserData();
   const notification = useNotification();
   
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   
   // Profile data
   const [displayName, setDisplayName] = useState(profile?.displayName || '');
@@ -45,26 +47,37 @@ const Profile = () => {
   const [emailUpdates, setEmailUpdates] = useState(profile?.emailUpdates || false);
   const [language, setLanguage] = useState(profile?.language || 'en');
 
+  // Sync profile state when profile changes (after reload)
+  useEffect(() => {
+    if (profile?.displayName) {
+      setDisplayName(profile.displayName);
+    }
+    if (profile?.bio) {
+      setBio(profile.bio);
+    }
+    if (profile?.goal) {
+      setGoal(profile.goal);
+    }
+  }, [profile?.displayName, profile?.bio, profile?.goal]);
+
   const handleSave = async () => {
     if (!user) return;
     
     setLoading(true);
     
     try {
-      // Use Phase 2 apiService directly for profile save
-      const result = await apiService.updateProgress({
+      // Use apiService to update profile
+      const result = await apiService.updateProfile({
         displayName,
-        bio,
-        goal,
-        notifications,
-        emailUpdates,
-        language,
-        updatedAt: new Date().toISOString(),
+        photoURL: profile?.photoURL || '',
       });
       
       if (result.success) {
         notification.success('Profile updated successfully!');
+        setSaveSuccess(true);
         setIsEditing(false);
+        await reloadProfile();
+        setTimeout(() => setSaveSuccess(false), 3000);
       } else {
         notification.error(result.error || 'Failed to save profile');
       }
@@ -262,26 +275,6 @@ const Profile = () => {
                   />
                   <div className="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-primary-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                 </label>
-              </div>
-
-              {/* Language */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                <div className="flex items-center space-x-3">
-                  <IoLanguage className="text-2xl text-gray-600" />
-                  <div>
-                    <div className="font-medium text-gray-900">Language</div>
-                    <div className="text-sm text-gray-600">Interface language</div>
-                  </div>
-                </div>
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="en">English</option>
-                  <option value="es">Español</option>
-                  <option value="fr">Français</option>
-                </select>
               </div>
 
               {isEditing && (

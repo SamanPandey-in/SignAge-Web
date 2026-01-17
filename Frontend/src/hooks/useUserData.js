@@ -108,6 +108,19 @@ export const useUserData = () => {
     dispatch(addCompletedLesson(lessonId));
   };
 
+  /**
+   * Reload profile from server
+   */
+  const reloadProfile = async () => {
+    try {
+      await dispatch(fetchUserProfile()).unwrap();
+      return { success: true };
+    } catch (err) {
+      notificationError(err);
+      return { success: false, error: err };
+    }
+  };
+
   return {
     // User Profile
     profile,
@@ -135,5 +148,6 @@ export const useUserData = () => {
     setTodayProgress,
     setStreak,
     addLesson,
+    reloadProfile,
   };
 };

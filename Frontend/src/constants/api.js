@@ -4,6 +4,8 @@ export const API_ENDPOINTS = {
   LOGIN: '/auth/login',
   SIGNUP: '/auth/signup',
   LOGOUT: '/auth/logout',
+  GET_PROFILE: '/auth/profile',
+  UPDATE_PROFILE: '/auth/profile',
   LESSONS: '/lessons',
   LESSON_DETAIL: '/lessons/:id',
   LESSON_COMPLETE: '/lessons/:id/complete',
