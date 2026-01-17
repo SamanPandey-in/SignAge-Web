@@ -6,7 +6,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@hooks/useAuth';
 import { ROUTES } from '@constants/routes';
-import { IoHome, IoBook, IoPerson, IoLogOut } from 'react-icons/io5';
+import { IoHome, IoBook, IoTrophy, IoPerson, IoLogOut } from 'react-icons/io5';
 import Button from '@components/common/Button';
 
 const Navigation = () => {
@@ -24,6 +24,7 @@ const Navigation = () => {
   const navLinks = [
     { path: ROUTES.HOME, icon: IoHome, label: 'Home' },
     { path: ROUTES.LEARN, icon: IoBook, label: 'Learn' },
+    { path: ROUTES.PROGRESS, icon: IoTrophy, label: 'Progress' },
     { path: ROUTES.PROFILE, icon: IoPerson, label: 'Profile' },
   ];
 
