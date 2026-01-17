@@ -1,12 +1,12 @@
 /**
  * Login Page
- * Preserves existing authentication logic
+ * Authentication interface with signup support
+ * Migrated to Phase 1: Uses Redux notification system
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@hooks/useAuth';
-import { AuthService } from '@services/firebase';
 import { ROUTES } from '@constants/routes';
 import Button from '@components/common/Button';
 import LoadingSpinner from '@components/common/LoadingSpinner';
@@ -14,7 +14,7 @@ import LoadingSpinner from '@components/common/LoadingSpinner';
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, signup, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,11 +38,20 @@ const Login = () => {
 
     try {
       if (isSignup) {
-        await AuthService.signup(email, password, displayName || 'User');
+        const result = await signup(email, password, displayName || 'User');
+        if (result.success) {
+          navigate(from, { replace: true });
+        } else {
+          setError(result.error || 'Sign up failed');
+        }
       } else {
-        await AuthService.login(email, password);
+        const result = await login(email, password);
+        if (result.success) {
+          navigate(from, { replace: true });
+        } else {
+          setError(result.error || 'Login failed');
+        }
       }
-      navigate(from, { replace: true });
     } catch (err) {
       setError(err.message || 'An error occurred');
     } finally {

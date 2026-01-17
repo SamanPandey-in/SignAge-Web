@@ -3,10 +3,10 @@
  * User profile management and settings
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@hooks/useAuth';
-import { useProgress } from '@hooks/useProgress';
-import { DatabaseService } from '@services/firebase';
+import { useUserData } from '@hooks/useUserData';
+import { useNotification } from '@hooks/useNotification';
 import {
   IoPerson,
   IoPencil,
@@ -28,72 +28,46 @@ import LoadingSpinner from '@components/common/LoadingSpinner';
 
 const Profile = () => {
   const { user, logout } = useAuth();
-  const { streak, totalLessonsCompleted, starsEarned, totalPracticeTime } = useProgress();
+  const { profile, stats, loading: profileLoading } = useUserData();
+  const notification = useNotification();
   
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   
   // Profile data
-  const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('');
-  const [goal, setGoal] = useState('');
+  const [displayName, setDisplayName] = useState(profile?.displayName || '');
+  const [bio, setBio] = useState(profile?.bio || '');
+  const [goal, setGoal] = useState(profile?.goal || '');
   
   // Settings
-  const [notifications, setNotifications] = useState(true);
-  const [emailUpdates, setEmailUpdates] = useState(false);
-  const [language, setLanguage] = useState('en');
-
-  useEffect(() => {
-    loadUserProfile();
-  }, [user]);
-
-  const loadUserProfile = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      const result = await DatabaseService.getUserData(user.uid);
-      if (result.success) {
-        const data = result.data;
-        setDisplayName(data.displayName || user.email?.split('@')[0] || '');
-        setBio(data.bio || '');
-        setGoal(data.goal || '');
-        setNotifications(data.notifications !== false);
-        setEmailUpdates(data.emailUpdates || false);
-        setLanguage(data.language || 'en');
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [notifications, setNotifications] = useState(profile?.notifications !== false);
+  const [emailUpdates, setEmailUpdates] = useState(profile?.emailUpdates || false);
+  const [language, setLanguage] = useState(profile?.language || 'en');
 
   const handleSave = async () => {
     if (!user) return;
     
     setLoading(true);
-    setSaveSuccess(false);
     
     try {
-      await DatabaseService.saveUserData(user.uid, {
-        displayName,
-        bio,
-        goal,
-        notifications,
-        emailUpdates,
-        language,
-        updatedAt: new Date().toISOString(),
-      });
+      // Update profile data via Redux
+      await import('@services/firebase').then(({ DatabaseService }) =>
+        DatabaseService.saveUserData(user.uid, {
+          displayName,
+          bio,
+          goal,
+          notifications,
+          emailUpdates,
+          language,
+          updatedAt: new Date().toISOString(),
+        })
+      );
       
-      setSaveSuccess(true);
+      notification.success('Profile updated successfully!');
       setIsEditing(false);
-      
-      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Failed to save profile. Please try again.');
+      notification.error('Failed to save profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -105,34 +79,34 @@ const Profile = () => {
     }
   };
 
-  const stats = [
+  const profileStats = [
     { 
       icon: IoFlame, 
       label: 'Day Streak', 
-      value: streak,
+      value: stats?.streak || 0,
       color: 'warning'
     },
     { 
       icon: IoTrophy, 
       label: 'Lessons Completed', 
-      value: totalLessonsCompleted,
+      value: stats?.totalLessonsCompleted || 0,
       color: 'primary'
     },
     { 
       icon: IoStar, 
       label: 'Stars Earned', 
-      value: starsEarned,
+      value: stats?.starsEarned || 0,
       color: 'success'
     },
     { 
       icon: IoCalendar, 
       label: 'Practice Time', 
-      value: `${totalPracticeTime}m`,
+      value: `${stats?.totalPracticeTime || 0}m`,
       color: 'danger'
     },
   ];
 
-  if (loading && !displayName) {
+  if (profileLoading && !profile) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <LoadingSpinner size="large" />
@@ -334,7 +308,7 @@ const Profile = () => {
           <Card padding="medium">
             <h3 className="font-semibold text-gray-900 mb-4">Your Progress</h3>
             <div className="space-y-4">
-              {stats.map(({ icon: Icon, label, value, color }) => (
+              {profileStats.map(({ icon: Icon, label, value, color }) => (
                 <div key={label} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-10 h-10 bg-${color}-100 rounded-lg flex items-center justify-center`}>

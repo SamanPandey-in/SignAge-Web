@@ -1,13 +1,12 @@
 /**
  * Progress Page
  * Detailed statistics and progress tracking
+ * Migrated to Phase 1: Uses Redux consolidation for all data
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProgress } from '@hooks/useProgress';
-import { useLessons } from '@hooks/useLessons';
-import { DatabaseService, AuthService } from '@services/firebase';
+import { useUserData } from '@hooks/useUserData';
 import { ROUTES } from '@constants/routes';
 import {
   IoTrophy,
@@ -27,58 +26,27 @@ import { LESSONS } from '@constants/lessons';
 const Progress = () => {
   const navigate = useNavigate();
   const { 
-    streak, 
-    todayProgress, 
-    totalLessonsCompleted, 
-    totalPracticeTime, 
+    stats,
+    streak,
+    todayProgress,
+    lessonsCompleted,
+    totalPracticeTime,
     starsEarned,
-    loadProgress 
-  } = useProgress();
-  const { completedLessons } = useLessons();
+    completedLessons,
+    isLoading,
+  } = useUserData();
   
   const [loading, setLoading] = useState(true);
   const [weeklyActivity, setWeeklyActivity] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('week'); // week, month, all
-  const [dbStats, setDbStats] = useState({
-    lessonsCompleted: 0,
-    streak: 0,
-    totalStars: 0,
-    totalPracticeTime: 0,
-    completedLessons: [],
-  });
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    setLoading(true);
-    await loadProgress();
-    await loadProgressFromDatabase();
-    generateWeeklyActivity();
     setLoading(false);
-  };
-
-  const loadProgressFromDatabase = async () => {
-    try {
-      const user = AuthService.getCurrentUser();
-      if (user) {
-        const statsResult = await DatabaseService.getUserStats(user.uid);
-        const lessonsResult = await DatabaseService.getCompletedLessons(user.uid);
-
-        if (statsResult.success) {
-          setDbStats({
-            lessonsCompleted: statsResult.stats.lessonsCompleted || 0,
-            streak: statsResult.stats.streak || 0,
-            totalStars: statsResult.stats.totalStars || 0,
-            totalPracticeTime: statsResult.stats.totalPracticeTime || 0,
-            completedLessons: lessonsResult.success ? lessonsResult.lessons : [],
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error loading progress from database:', error);
-    }
+    generateWeeklyActivity();
   };
 
   const generateWeeklyActivity = () => {
@@ -97,7 +65,7 @@ const Progress = () => {
     ? Math.round((totalLessonsCompleted / totalLessons) * 100) 
     : 0;
 
-  const stats = [
+  const stats_data = [
     {
       icon: IoFlame,
       label: 'Current Streak',
@@ -108,7 +76,7 @@ const Progress = () => {
     {
       icon: IoTrophy,
       label: 'Lessons Completed',
-      value: totalLessonsCompleted,
+      value: lessonsCompleted,
       color: 'primary',
       bgColor: 'from-primary-500 to-primary-600',
     },
@@ -154,7 +122,7 @@ const Progress = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map(({ icon: Icon, label, value, bgColor }) => (
+        {stats_data.map(({ icon: Icon, label, value, bgColor }) => (
           <Card key={label} padding="medium" className={`bg-gradient-to-br ${bgColor} text-white`}>
             <Icon className="text-3xl mb-2 opacity-90" />
             <div className="text-2xl font-bold mb-1">{value}</div>
@@ -194,7 +162,7 @@ const Progress = () => {
               </div>
               <ProgressBar value={completionRate} max={100} showLabel={false} />
               <p className="text-sm text-gray-600 mt-2">
-                {totalLessonsCompleted} of {totalLessons} lessons completed
+                {lessonsCompleted} of {totalLessons} lessons completed
               </p>
             </div>
 

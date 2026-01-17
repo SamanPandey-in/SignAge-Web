@@ -1,13 +1,13 @@
 /**
  * Lesson Content Page
  * Interactive lesson learning interface with step-by-step sign practice
+ * Migrated to Phase 1: Uses Redux for lesson completion and notifications
  */
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useLessons } from '@hooks/useLessons';
-import { useProgress } from '@hooks/useProgress';
-import { DatabaseService, AuthService } from '@services/firebase';
+import { useUserData } from '@hooks/useUserData';
+import { useNotification } from '@hooks/useNotification';
 import { getLessonById } from '@constants/lessons';
 import { ROUTES } from '@constants/routes';
 import {
@@ -26,8 +26,8 @@ import LoadingSpinner from '@components/common/LoadingSpinner';
 const LessonContent = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
-  const { addCompletedLesson } = useLessons();
-  const { updateProgress } = useProgress();
+  const { completeLesson, isLoading: userDataLoading } = useUserData();
+  const { success, error } = useNotification();
 
   const [lesson, setLesson] = useState(null);
   const [currentSignIndex, setCurrentSignIndex] = useState(0);
@@ -82,54 +82,21 @@ const LessonContent = () => {
     }
   };
 
-  const handleLessonComplete = () => {
-    // Mark lesson as completed
-    addCompletedLesson(lessonId);
-    
-    // Update progress
-    updateProgress({
-      lessonId,
-      completedAt: new Date().toISOString(),
-      score: 100,
-    });
-
-    // Save to database
-    saveProgressToDatabase();
-    
-    setShowCompletionModal(true);
-  };
-
-  const saveProgressToDatabase = async () => {
+  const handleLessonComplete = async () => {
     try {
       setIsSaving(true);
-      const user = AuthService.getCurrentUser();
-
-      if (user) {
-        const signsLearned = lesson.signs.length;
-        const score = signsLearned * 10;
-        const stars = 3;
-
-        const result = await DatabaseService.markLessonCompleted(
-          user.uid,
-          lesson.id,
-          score,
-          stars,
-          signsLearned
-        );
-
-        if (result.success) {
-          const statsResult = await DatabaseService.getUserStats(user.uid);
-          if (statsResult.success) {
-            const lessonsCompleted = statsResult.stats.lessonsCompleted || 0;
-            const todayProgress = Math.min(lessonsCompleted * 50, 100);
-            await DatabaseService.updateTodayProgress(user.uid, todayProgress);
-          }
-
-          console.log('🎉 Lesson Complete! You earned ' + stars + ' stars!');
-        }
+      
+      // Use the new Redux thunk to complete the lesson
+      const result = await completeLesson(lessonId, 100, 3, lesson.signs.length);
+      
+      if (result.success) {
+        success(`🎉 Lesson Complete! You earned 3 stars!`);
+        setShowCompletionModal(true);
+      } else {
+        error(result.error || 'Failed to save lesson completion');
       }
-    } catch (error) {
-      console.error('Error saving lesson completion:', error);
+    } catch (err) {
+      error(err.message || 'An error occurred');
     } finally {
       setIsSaving(false);
     }

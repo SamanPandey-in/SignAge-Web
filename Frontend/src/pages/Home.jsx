@@ -1,13 +1,11 @@
 /**
  * Home Page
  * Main dashboard for authenticated users
+ * Migrated to Phase 1: Uses Redux consolidation for data
  */
 
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@hooks/useAuth';
-import { useProgress } from '@hooks/useProgress';
-import { DatabaseService, AuthService } from '@services/firebase';
+import { useUserData } from '@hooks/useUserData';
 import { getTimeBasedGreeting } from '@utils/helpers';
 import { ROUTES } from '@constants/routes';
 import {
@@ -20,73 +18,32 @@ import {
   IoBulb,
   IoToday,
 } from 'react-icons/io5';
-import Button from '@components/common/Button';
+import LoadingSpinner from '@components/common/LoadingSpinner';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { 
+    profile, 
+    streak, 
+    todayProgress, 
+    lessonsCompleted, 
+    totalPracticeTime, 
+    starsEarned,
+    isLoading 
+  } = useUserData();
 
-  const [userName, setUserName] = useState('User');
-  const [streak, setStreak] = useState(0);
-  const [todayProgress, setTodayProgress] = useState(0);
-  const [lessonsCompleted, setLessonsCompleted] = useState(0);
-  const [totalPracticeTime, setTotalPracticeTime] = useState(0);
-  const [totalStars, setTotalStars] = useState(0);
-
-  const fetchLessons = async () => {
-    try {
-      const currentUser = AuthService.getCurrentUser();
-      if (!currentUser) return;
-
-      const token = await currentUser.getIdToken();
-
-      const res = await fetch('http://localhost:5001/lessons', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json();
-      console.log('📚 LESSONS FROM BACKEND:', data);
-    } catch (error) {
-      console.error('❌ Error fetching lessons:', error);
-    }
-  };
-
-  useEffect(() => {
-    const unsubscribe = AuthService.onAuthChange(async (currentUser) => {
-      if (currentUser) {
-        await loadUserData(currentUser);
-        await fetchLessons();
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const loadUserData = async (currentUser) => {
-    try {
-      const userData = await DatabaseService.getUserData(currentUser.uid);
-      if (userData.success && userData.data) {
-        setUserName(userData.data.displayName || 'User');
-        setStreak(userData.data.progress?.streak || 0);
-        setTodayProgress(userData.data.progress?.todayProgress || 0);
-      }
-
-      const statsResult = await DatabaseService.getUserStats(currentUser.uid);
-      if (statsResult.success && statsResult.stats) {
-        setLessonsCompleted(statsResult.stats.lessonsCompleted || 0);
-        setTotalPracticeTime(statsResult.stats.totalPracticeTime || 0);
-        setTotalStars(statsResult.stats.totalStars || 0);
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <LoadingSpinner size="large" />
+      </div>
+    );
+  }
 
   const statCards = [
     { icon: IoTrophy, value: lessonsCompleted, label: 'Lessons Completed', color: 'warning' },
     { icon: IoTime, value: `${totalPracticeTime}m`, label: 'Practice Time', color: 'primary' },
-    { icon: IoStar, value: totalStars, label: 'Stars Earned', color: 'success' },
+    { icon: IoStar, value: starsEarned, label: 'Stars Earned', color: 'success' },
   ];
 
   return (
@@ -95,7 +52,7 @@ const Home = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {getTimeBasedGreeting()}, {userName}! 👋
+            {getTimeBasedGreeting()}, {profile.displayName}! 👋
           </h1>
           <p className="text-gray-600 mt-1">Ready to continue learning?</p>
         </div>

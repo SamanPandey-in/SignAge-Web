@@ -5,8 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useLessons } from '@hooks/useLessons';
-import { useAuth } from '@hooks/useAuth';
+import { useUserData } from '@hooks/useUserData';
 import { ROUTES, generatePath } from '@constants/routes';
 import { getLessonById } from '@constants/lessons';
 import {
@@ -27,8 +26,7 @@ import LoadingSpinner from '@components/common/LoadingSpinner';
 const LessonDetail = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { isLessonCompleted } = useLessons();
+  const { completedLessons } = useUserData();
   
   const [lesson, setLesson] = useState(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -85,7 +83,6 @@ const LessonDetail = () => {
       }
     } else {
       navigator.clipboard.writeText(shareUrl);
-      alert('Link copied to clipboard!');
     }
     setShowShareMenu(false);
   };
@@ -108,7 +105,7 @@ const LessonDetail = () => {
     );
   }
 
-  const isCompleted = isLessonCompleted(lessonId);
+  const isCompleted = completedLessons.includes(lessonId);
   const difficultyColor = {
     Beginner: 'bg-success-100 text-success-700',
     Intermediate: 'bg-warning-100 text-warning-700',

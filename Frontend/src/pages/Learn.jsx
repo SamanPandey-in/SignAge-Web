@@ -1,49 +1,28 @@
 /**
  * Learn Page - Lesson Selection
+ * Migrated to Phase 1: Uses Redux consolidation for completed lessons
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLessons } from '@hooks/useLessons';
-import { LESSON_CATEGORIES, getLessonsByCategory } from '@constants/lessons';
+import { useUserData } from '@hooks/useUserData';
+import { LESSONS, LESSON_CATEGORIES, getLessonsByCategory } from '@constants/lessons';
 import { ROUTES, generatePath } from '@constants/routes';
-import { DatabaseService, AuthService } from '@services/firebase';
 import { IoCheckmarkCircle, IoChevronForward } from 'react-icons/io5';
 import LoadingSpinner from '@components/common/LoadingSpinner';
 
 const Learn = () => {
   const navigate = useNavigate();
-  const { completedLessons, isLoading } = useLessons();
+  const { completedLessons, isLoading } = useUserData();
   const [selectedCategory, setSelectedCategory] = useState('basics');
   const [filteredLessons, setFilteredLessons] = useState([]);
-  const [loadedCompletedLessons, setLoadedCompletedLessons] = useState([]);
-
-  useEffect(() => {
-    loadCompletedLessons();
-  }, []);
 
   useEffect(() => {
     const lessons = getLessonsByCategory(selectedCategory);
     setFilteredLessons(lessons);
   }, [selectedCategory]);
 
-  const loadCompletedLessons = async () => {
-    try {
-      const user = AuthService.getCurrentUser();
-      if (user) {
-        const result = await DatabaseService.getCompletedLessons(user.uid);
-        if (result.success) {
-          setLoadedCompletedLessons(result.lessons || []);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading completed lessons:', error);
-    }
-  };
-
-  const isLessonCompleted = (lessonId) => {
-    return completedLessons.includes(lessonId) || loadedCompletedLessons.includes(lessonId);
-  };
+  const isLessonCompleted = (lessonId) => completedLessons.includes(lessonId);
 
   const handleLessonClick = (lesson) => {
     navigate(generatePath(ROUTES.LESSON_DETAIL, { lessonId: lesson.id }));

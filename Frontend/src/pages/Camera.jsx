@@ -5,6 +5,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUserData } from '@hooks/useUserData';
+import { useNotification } from '@hooks/useNotification';
 import {
   IoCamera,
   IoVideocam,
@@ -22,6 +24,9 @@ import { LESSONS } from '@constants/lessons';
 const Camera = () => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
+  const { updateProgress } = useUserData();
+  const notification = useNotification();
+  
   const [stream, setStream] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [selectedSign, setSelectedSign] = useState(null);
@@ -61,7 +66,7 @@ const Camera = () => {
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
-      alert('Unable to access camera. Please check your permissions.');
+      notification.error('Unable to access camera. Please check your permissions.');
     }
   };
 
@@ -121,6 +126,11 @@ const Camera = () => {
       score: randomScore,
       timestamp: new Date().toISOString(),
     }, ...prev.slice(0, 4)]);
+    
+    // Update practice time in Redux (track time spent practicing)
+    if (isSuccess) {
+      updateProgress({ todayProgress: 1 });
+    }
   };
 
   const handleSelectSign = (sign) => {
