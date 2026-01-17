@@ -2,14 +2,16 @@
  * User Data Redux Slice
  * Consolidates all user-related data: profile, stats, progress
  * Single source of truth for user information
+ * Phase 3: Using cachedAPIService for automatic caching
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import apiService from '@services/apiService';
+import cachedAPIService from '@services/cachedAPIService';
 import { auth } from '@services/firebase';
 
 /**
  * Async thunk to fetch complete user profile including stats and progress
+ * Phase 3: Now uses cachedAPIService for automatic caching
  */
 export const fetchUserProfile = createAsyncThunk(
   'userData/fetchUserProfile',
@@ -19,11 +21,12 @@ export const fetchUserProfile = createAsyncThunk(
         throw new Error('User not authenticated');
       }
 
-      // Fetch all user data in parallel using Phase 2 apiService
+      // Fetch all user data in parallel using Phase 3 cachedAPIService
+      // Automatic caching, deduplication, and retry logic applied
       const [progressResult, streakResult, lessonsResult] = await Promise.all([
-        apiService.getProgress(),
-        apiService.getStreak(),
-        apiService.getAllLessons(),
+        cachedAPIService.getProgress(),
+        cachedAPIService.getStreak(),
+        cachedAPIService.getAllLessons(),
       ]);
 
       if (!progressResult.success) {
@@ -43,6 +46,7 @@ export const fetchUserProfile = createAsyncThunk(
 
 /**
  * Async thunk to update user progress
+ * Phase 3: Uses cachedAPIService which auto-invalidates related caches
  */
 export const updateUserProgress = createAsyncThunk(
   'userData/updateUserProgress',
@@ -52,8 +56,8 @@ export const updateUserProgress = createAsyncThunk(
         throw new Error('User not authenticated');
       }
 
-      // Use Phase 2 apiService for unified API layer
-      const result = await apiService.updateProgress(progressData);
+      // Use Phase 3 cachedAPIService - automatic cache invalidation on update
+      const result = await cachedAPIService.updateProgress(progressData);
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to update progress');
@@ -68,6 +72,7 @@ export const updateUserProgress = createAsyncThunk(
 
 /**
  * Async thunk to mark lesson as completed
+ * Phase 3: Automatic cache invalidation after mutation
  */
 export const markLessonCompleted = createAsyncThunk(
   'userData/markLessonCompleted',
@@ -77,8 +82,8 @@ export const markLessonCompleted = createAsyncThunk(
         throw new Error('User not authenticated');
       }
 
-      // Use Phase 2 apiService unified endpoint
-      const result = await apiService.completeLesson(lessonId, score);
+      // Use Phase 3 cachedAPIService - auto-invalidates all_lessons and progress caches
+      const result = await cachedAPIService.completeLesson(lessonId, score);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to mark lesson as completed');

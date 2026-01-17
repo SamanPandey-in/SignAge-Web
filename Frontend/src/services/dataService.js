@@ -1,10 +1,10 @@
 /**
  * Data Service
  * Business logic layer that aggregates and manages data access
- * Phase 2 Integration: Now uses unified apiService instead of direct Firebase calls
+ * Phase 3: Now uses cachedAPIService for automatic caching + Phase 2 apiService
  */
 
-import apiService from '@services/apiService';
+import cachedAPIService from '@services/cachedAPIService';
 
 /**
  * Cache configuration to prevent unnecessary API calls
@@ -40,20 +40,11 @@ export const DataService = {
    */
   async fetchUserProfile() {
     try {
-      // Check cache first
-      if (isCacheValid(cache.userProfile)) {
-        return {
-          success: true,
-          source: 'cache',
-          data: cache.userProfile.data,
-        };
-      }
-
-      // Fetch from API using Phase 2 apiService
+      // Phase 3: Use cachedAPIService for automatic TTL-based caching
       const [progressResult, streakResult, lessonsResult] = await Promise.all([
-        apiService.getProgress(),
-        apiService.getStreak(),
-        apiService.getAllLessons(),
+        cachedAPIService.getProgress(),
+        cachedAPIService.getStreak(),
+        cachedAPIService.getAllLessons(),
       ]);
 
       if (!progressResult.success) {
@@ -65,13 +56,9 @@ export const DataService = {
         completedLessons: lessonsResult.data?.filter(l => l.completed) || [],
       };
 
-      // Cache the result
-      cache.userProfile.data = profileData;
-      cache.userProfile.timestamp = Date.now();
-
       return {
         success: true,
-        source: 'api',
+        source: 'api', // could be 'cache' if returned from cachedAPIService cache
         data: profileData,
       };
     } catch (error) {
@@ -85,36 +72,24 @@ export const DataService = {
 
   /**
    * Fetch user statistics
-   * Uses Phase 2 apiService for unified API layer
+   * Phase 3: Uses cachedAPIService for automatic caching
    */
   async fetchUserStats() {
     try {
-      // Check cache first
-      if (isCacheValid(cache.userStats)) {
-        return {
-          success: true,
-          source: 'cache',
-          stats: cache.userStats.data,
-        };
-      }
-
-      const result = await apiService.getProgress();
+      // Phase 3: Use cachedAPIService with automatic TTL caching
+      const result = await cachedAPIService.getProgress();
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch user stats');
       }
 
-      // Cache the result
-      cache.userStats.data = result.data;
-      cache.userStats.timestamp = Date.now();
-
       return {
         success: true,
-        source: 'database',
-        stats: result.stats,
+        source: 'api', // may come from cache in cachedAPIService
+        stats: result.data,
       };
     } catch (error) {
-      console.error('Error fetching user stats:', error);
+      console.error('[DataService] Error fetching user stats:', error);
       return {
         success: false,
         error: error.message,
@@ -124,20 +99,12 @@ export const DataService = {
 
   /**
    * Fetch completed lessons
-   * Uses Phase 2 apiService
+   * Phase 3: Uses cachedAPIService
    */
   async fetchCompletedLessons() {
     try {
-      // Check cache first
-      if (isCacheValid(cache.completedLessons)) {
-        return {
-          success: true,
-          source: 'cache',
-          lessons: cache.completedLessons.data,
-        };
-      }
-
-      const result = await apiService.getAllLessons();
+      // Phase 3: Use cachedAPIService for automatic caching
+      const result = await cachedAPIService.getAllLessons();
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch completed lessons');
@@ -165,18 +132,13 @@ export const DataService = {
 
   /**
    * Update user progress using Phase 2 apiService
-   * Invalidates cache on success
+   * Phase 3: Uses cachedAPIService which auto-invalidates related caches
    */
   async updateUserProgress(progressData) {
     try {
-      const result = await apiService.updateProgress(progressData);
+      // Phase 3: cachedAPIService automatically invalidates 'progress' cache
+      const result = await cachedAPIService.updateProgress(progressData);
       
-      if (result.success) {
-        // Invalidate relevant caches
-        cache.userStats.data = null;
-        cache.userProfile.data = null;
-      }
-
       return result;
     } catch (error) {
       console.error('[DataService] Error updating user progress:', error);
@@ -188,22 +150,17 @@ export const DataService = {
   },
 
   /**
-   * Mark lesson as completed using Phase 2 apiService
+   * Mark lesson as completed
+   * Phase 3: Uses cachedAPIService with automatic cache invalidation
    */
   async markLessonCompleted(lessonId, score) {
     try {
-      const result = await apiService.completeLesson(lessonId, score);
-
-      if (result.success) {
-        // Invalidate relevant caches
-        cache.userProfile.data = null;
-        cache.userStats.data = null;
-        cache.completedLessons.data = null;
-      }
+      // Phase 3: cachedAPIService auto-invalidates 'all_lessons' and 'progress' caches
+      const result = await cachedAPIService.completeLesson(lessonId, score);
 
       return result;
     } catch (error) {
-      console.error('Error marking lesson as completed:', error);
+      console.error('[DataService] Error marking lesson as completed:', error);
       return {
         success: false,
         error: error.message,
@@ -216,14 +173,8 @@ export const DataService = {
    */
   async updateTodayProgress(progress) {
     try {
-      const result = await apiService.updateProgress({ todayProgress: progress });
-
-      if (result.success) {
-        // Invalidate cache
-        cache.userStats.data = null;
-        cache.userProfile.data = null;
-      }
-
+      // Phase 3: cachedAPIService auto-invalidates 'progress' cache
+      const result = await cachedAPIService.updateProgress({ todayProgress: progress });
       return result;
     } catch (error) {
       console.error('[DataService] Error updating today progress:', error);
@@ -235,21 +186,16 @@ export const DataService = {
   },
 
   /**
-   * Update user streak using Phase 2 apiService
+   * Update user streak
+   * Phase 3: Uses cachedAPIService with automatic cache invalidation
    */
   async updateUserStreak() {
     try {
-      const result = await apiService.updateStreak();
-
-      if (result.success) {
-        // Invalidate cache
-        cache.userStats.data = null;
-        cache.userProfile.data = null;
-      }
-
+      // Phase 3: cachedAPIService auto-invalidates 'streak' and 'progress' caches
+      const result = await cachedAPIService.updateStreak();
       return result;
     } catch (error) {
-      console.error('Error updating streak:', error);
+      console.error('[DataService] Error updating streak:', error);
       return {
         success: false,
         error: error.message,

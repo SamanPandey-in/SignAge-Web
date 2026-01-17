@@ -1,15 +1,16 @@
 /**
  * Query Service
  * Provides a consistent interface for querying data from various sources
- * Phase 2 Integration: Uses DataService which now uses unified apiService
+ * Phase 3: DataService now uses cachedAPIService for automatic caching
  */
 
 import { DataService } from '@services/dataService';
-import apiService from '@services/apiService';
+import cachedAPIService from '@services/cachedAPIService';
 
 export const QueryService = {
   /**
-   * Get user's profile information using Phase 2 apiService
+   * Get user's profile information
+   * Phase 3: Uses DataService which now uses cachedAPIService
    */
   async getUserProfile() {
     try {
@@ -22,7 +23,8 @@ export const QueryService = {
   },
 
   /**
-   * Get user statistics using Phase 2 apiService
+   * Get user statistics
+   * Phase 3: Uses DataService which now uses cachedAPIService
    */
   async getUserStats() {
     try {
@@ -66,11 +68,12 @@ export const QueryService = {
   },
 
   /**
-   * Get user's current streak using Phase 2 apiService
+   * Get user's current streak
+   * Phase 3: Uses cachedAPIService for automatic caching
    */
   async getUserStreak() {
     try {
-      const result = await apiService.getStreak();
+      const result = await cachedAPIService.getStreak();
       
       if (!result.success) {
         return 0;
@@ -85,10 +88,11 @@ export const QueryService = {
 
   /**
    * Get today's progress for a user
+   * Phase 3: Uses cachedAPIService for automatic caching
    */
   async getTodayProgress() {
     try {
-      const result = await apiService.getProgress();
+      const result = await cachedAPIService.getProgress();
       
       if (!result.success) {
         return 0;
